@@ -1,0 +1,157 @@
+# Essential Spanish — handoff
+
+Kitchen-table booklet for **English-speaking retirees living in Panama**. Goal: be understood in daily life (farmacia, clinic, taxi, neighbors), not pass a grammar exam.
+
+**Date:** 2026-09-12
+
+---
+
+## What to give the reader
+
+| Format | File | Use |
+|---|---|---|
+| **PDF (print)** | `docs/essential-spanish.pdf` | Print or keep on a tablet. Letter size, ~37 pages. |
+| **Web (phone)** | `docs/index.html` + `docs/audio/` | Open in a browser. Keep the `audio` folder **next to** the HTML file. Speaker buttons play each Spanish line. |
+
+Do **not** ship `essential-spanish-grammar.pdf` — that old filename was retired when the title dropped “Grammar.”
+
+The web page also has **A− / A+** type-size buttons and a jump-to-chapter menu. Audio is web-only (not in the PDF).
+
+---
+
+## How to rebuild
+
+From this folder, on macOS:
+
+```bash
+python3 build_booklet.py
+```
+
+That regenerates:
+
+1. `docs/index.html`
+2. MP3s in `docs/audio/` for any **new** Spanish lines (existing clips are cached)
+3. `docs/essential-spanish.pdf`
+
+**Needs**
+
+- Python 3.9+ with `reportlab`, `pypdf`, and `edge-tts` (`python3 -m pip install --user reportlab pypdf edge-tts`)
+- macOS fonts: Georgia + Verdana under `/System/Library/Fonts/Supplemental/`
+- For audio: internet at rebuild time (Microsoft Edge neural TTS, voice **es-PA-RobertoNeural**)
+
+First audio run takes several minutes (~485 clips after slash-alternatives are split). Later runs only build new hashes.
+
+Edit **content** in `booklet_content.py`, then rebuild. Do not hand-edit `docs/index.html` or `docs/essential-spanish.pdf`; they are generated.
+
+---
+
+## Repo layout
+
+| Path | Role |
+|---|---|
+| `booklet_content.py` | Source of truth: title, chapters, tables, phrases |
+| `build_booklet.py` | HTML + PDF + TTS generator |
+| `docs/index.html` | Generated web booklet |
+| `docs/essential-spanish.pdf` | Generated print booklet |
+| `docs/audio/*.mp3` | Generated clips; filename is a hash of the spoken text |
+| `HANDOFF.md` | This file |
+
+---
+
+## Content map
+
+Tone: conversational, large type, Panama examples. `usted` is the default “you.” No *vosotros*. No *vos* (Panama does not use it).
+
+1. **Start here** — how to use it; what actually trips English speakers  
+2. **Ch. 1** — fifteen workhorse sentences (with pronunciation respelling)  
+3. **Ch. 2** — sounds; vowels matter more than a rolled *rr*; coastal *s*-dropping  
+4. **Ch. 3** — *el/la*; learn the article with the noun; deceptive-gender list  
+5. **Ch. 4** — adjectives  
+6. **Ch. 5** — pronouns; *usted* vs *tú* in Panama  
+7. **Ch. 6** — *ser / estar / hay* — **estar is the one to practice**  
+8. **Ch. 7** — present tense  
+9. **Ch. 8** — daily verbs  
+10. **Ch. 9** — *gustar*: start with *me*, not *yo*; *Me gustaría* at the counter  
+11. **Ch. 10** — questions, *no*, and the magic five (*quiero / puedo / necesito / tengo que / voy a*)  
+12. **Ch. 11** — two pasts; the English trap (don’t use the snapshot past for “used to / was -ing”)  
+13. **Ch. 12** — commands: **formal (usted) and informal (tú)** side by side  
+14. **Ch. 13** — *por / para* in daily chunks  
+15. **Ch. 14** — location + personal *a*  
+16. **Ch. 15** — numbers, money (USD/balboa), time  
+17. **Ch. 16** — little words; *lo/la* as recognition  
+18. **Ch. 17** — Panama layer (local words, building-manager note)  
+19. **Ch. 18** — filling out a form (labels, dates, one last name, cédula vs passport)  
+20. **Ch. 19** — phrasebook (clinic, pharmacy, restaurant, home repairs, taxi, 911)  
+21. **Cheat sheets** — photo page  
+22. **Pocket page** — wallet card  
+
+Chapters 12 (commands), cheat sheets, and the pocket page are the ones people will actually carry.
+
+---
+
+## Design and product decisions (don’t undo these lightly)
+
+Drawn from SLA research on English speakers learning Spanish, plus a Peace Corps / El Salvador listener study:
+
+- **Wrong *ser/estar* or wrong past** often confuses a listener. **Wrong *el/la*** almost never does. Teach gender as a lookup list, not a fear.
+- English speakers **overuse *ser***. The work is **estar** (feelings, open/closed, ready/broken).
+- **Subjunctive is skipped.** Textbooks love it; input is sparse; it is not needed for this audience.
+- **Personal *a*** is a high-frequency classroom miss; show it, don’t lecture.
+- **Pronouns** are hard in production; the booklet treats *lo/la/se lo* as *recognition first*.
+- Audio uses **Microsoft Edge neural TTS**, voice **es-PA-RobertoNeural** (Panamanian Spanish, male), rate `-5%`. Clips are generated at rebuild time and shipped as MP3s; the web page does not call Edge at play time. Panama coastal speech still drops final *s*; the clips will sound a bit clearer than the taxi.
+- Chapter 15 number grid does **not** send Arabic digits (`0`, `1`, `1,000`, …) to TTS. Speaker buttons still play the Spanish word (`cero`, `mil`).
+
+Visual: cream paper, teal + coral + gold. Cover and running header say **Essential Spanish**, not “Grammar.” Web speaker icon is a cone + two sound waves in a **small** teal circle.
+
+---
+
+## How content is structured
+
+Each chapter in `booklet_content.py` is a dict:
+
+```python
+{
+  "id": "commands",          # HTML anchor
+  "kicker": "Chapter 12",
+  "title": "Please do this: commands",
+  "intro": "...",
+  "newpage": True,           # optional: start on a new PDF page
+  "blocks": [ ... ],
+}
+```
+
+Block types: `p`, `h2`, `tip`, `panama`, `callout`, `ul`, `ol`, `table`, `pairs`, `phrases`, `note`.
+
+Spanish in running text uses `<es>...</es>` so it renders teal/bold in both HTML and PDF.
+
+**Tables**
+
+- Default: first column is Spanish  
+- `"emphasis": "two-es"` — first two columns Spanish (used for usted/tú commands)  
+- `"emphasis": "all"` + `"hide_header": True` — number grid  
+
+**Audio (web only)**  
+Play buttons wrap Spanish cells in `pairs`, `phrases`, and Spanish table columns. Alternatives split on ` / ` each get their own clip (`Buenos días.` / `Buenas tardes.`). A single question with internal slashes stays one clip. Chapter 15 (`tts_skip_digits`) drops Arabic numerals so `0 cero` is spoken as `cero`. Spoken text drops ellipsis (so `¿Dónde está…?` is `¿Dónde está?`, not `está,?`), expands `alérgico/a` to both forms, and replaces placeholder `X` with `treinta`. Clip id = SHA-1 of `model|voice|rate|spoken`, first 12 hex chars. If an MP3 is missing, the page falls back to the browser’s Spanish voice.
+
+---
+
+## What is not done
+
+- No audio in the PDF
+- No app store / hosting setup — `docs/index.html` is opened locally or dropped on any static host **with** the `docs/audio/` folder
+- No spaced-repetition drills or quizzes
+- No study of long-term Panama retirees (research used classroom SLA + Central American Peace Corps data)
+
+---
+
+## Likely next edits
+
+| Request | Where |
+|---|---|
+| Change wording or add a phrase | `booklet_content.py`, then `python3 build_booklet.py` |
+| New Spanish line with audio | Same; new MP3s generate automatically |
+| Different TTS voice / rate | `EDGE_TTS_VOICE` / `EDGE_TTS_RATE` (defaults in `build_booklet.py`; Margarita is `es-PA-MargaritaNeural`) |
+| Force-rebuild all audio | Delete `docs/audio/` and rebuild |
+| Host the web booklet | Upload `docs/index.html` + `docs/audio/` together; relative `audio/{id}.mp3` paths must stay |
+
+Keep the booklet short. If adding a topic, ask whether a retiree needs it at the farmacia this week.
